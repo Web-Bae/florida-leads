@@ -11,49 +11,48 @@
 //   "#455061",
 // ];
 
-const SQUARE_COLORS = [
+const SQUARE_COLORS_DARK = [
   "#253C61", // Dark blue
   "#276125",
   "#614D25",
   "#612547",
-  "#612561",
+  "#492E8B",
 ];
+
+const SQUARE_COLORS = ["#097FE0", "#E08C09", "#09E091", "#E009C6", "#A1DB00"];
 
 async function fetchData() {
   const URL =
     "https://fl-leads-example-transformed-json-data.s3.amazonaws.com/data.json";
 
-  fetch(URL)
-    .then((response) => response.json())
-    .then((data) => {
-      console.log({ data });
+  try {
+    const response = await fetch(URL);
+    const data = await response.json();
+    console.log({ data });
 
-      data.forEach((chartData) => {
-        const template = document.querySelector("[chart-element='box']");
-        const templateParent = template.parentElement;
-        createChart(chartData, template, templateParent);
-      });
-    })
-    .catch((error) => {
-      console.error("Error fetching data", error);
+    data.forEach((chartData) => {
+      const template = document.querySelector("[chart-element='box']");
+      const templateParent = template.parentElement;
+      createChart(chartData, template, templateParent);
     });
+  } catch (error) {
+    console.error("Error fetching data", error);
+  }
 }
+
 fetchData();
 
 // Function to create a chart
 function createChart(chartData, template, templateParent) {
-  // const chartContainer = document.createElement("div");
   const canvas = document.createElement("canvas");
-  // chartContainer.appendChild(canvas);
-
   const chartContainer = template.cloneNode(true);
   const canvasContainer = chartContainer.querySelector(
     "[chart-element='canvas-container']"
   );
   canvasContainer.appendChild(canvas);
-
   templateParent.appendChild(chartContainer);
   chartContainer.classList.remove("hide");
+
   const ctx = canvas.getContext("2d");
 
   const titleElement = chartContainer.querySelector("[chart-element='title']");
@@ -70,65 +69,69 @@ function createChart(chartData, template, templateParent) {
       value: item.value,
     }));
 
-    new Chart(ctx, {
-      type: "pie",
-      data: {
-        labels: pieData.map((d) => d.label),
-        datasets: [
-          {
-            data: pieData.map((d) => d.value),
-            backgroundColor: () => {
-              return pieData.map((d, index) => {
+    // Special case: if title is "Training, Resources & Needs", show a list instead of a pie chart
+    if (chartData.title === "Training, Resources & Needs") {
+      handleSpecialCases(pieData, canvasContainer); // Pass the container
+    } else {
+      // Render pie chart
+      new Chart(ctx, {
+        type: "pie",
+        data: {
+          labels: pieData.map((d) => d.label),
+          datasets: [
+            {
+              data: pieData.map((d) => d.value),
+              backgroundColor: pieData.map((d, index) => {
                 return SQUARE_COLORS[index % SQUARE_COLORS.length];
-              });
+              }),
             },
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        aspectRatio: 1,
-        plugins: {
-          legend: {
-            display: false,
-          },
-          tooltip: {
-            enabled: true,
-          },
-          title: {
-            display: false,
-            text: chartData.title,
-          },
-          datalabels: {
-            color: "white",
-            font: {
-              weight: "normal",
-              size: 14,
+          ],
+        },
+        options: {
+          responsive: true,
+          aspectRatio: 1,
+          plugins: {
+            legend: {
+              display: false,
             },
-            backgroundColor: pieData.map((d, index) => {
-              const color = SQUARE_COLORS[index % SQUARE_COLORS.length];
-              return darkenHexColor(color, 15);
-            }),
-            padding: 8,
-            borderRadius: 5,
-            formatter: (value, context) => {
-              const label = context.chart.data.labels[context.dataIndex];
-              const lines = wrapText(ctx, label, 100);
-              return lines.join("\n") + `\n${value}%`;
+            tooltip: {
+              enabled: true,
             },
-            display: "auto",
-            anchor: "center",
-            align: "start",
-            offset: function (context) {
-              const chartArea = context.chart.chartArea;
-              const radius = (chartArea.right - chartArea.left) / 2; // Calculate radius based on chart area
-              return radius * -0.45; // Offset inward by 25% of the radius
+            title: {
+              display: false,
+              text: chartData.title,
+            },
+            datalabels: {
+              color: "white",
+              font: {
+                weight: "normal",
+                size: 14,
+              },
+              backgroundColor: pieData.map((d, index) => {
+                const color = SQUARE_COLORS[index % SQUARE_COLORS.length];
+                return darkenHexColor(color, 30);
+              }),
+              padding: 8,
+              borderRadius: 5,
+              formatter: (value, context) => {
+                const label = context.chart.data.labels[context.dataIndex];
+                const lines = wrapText(ctx, label, 100);
+                return lines.join("\n") + `\n${value}%`;
+              },
+              display: "auto",
+              anchor: "center",
+              align: "start",
+              offset: function (context) {
+                const chartArea = context.chart.chartArea;
+                const radius = (chartArea.right - chartArea.left) / 2; // Calculate radius based on chart area
+                return radius * -0.45; // Offset inward by 25% of the radius
+              },
             },
           },
         },
-      },
-      plugins: [ChartDataLabels],
-    });
+        plugins: [ChartDataLabels],
+      });
+    }
   } else if (chartData.type === "BAR") {
     const barData = chartData.bars.map((bar) => ({
       label: bar.label,
@@ -183,7 +186,10 @@ function createChart(chartData, template, templateParent) {
               weight: "normal",
               size: 14,
             },
-            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            backgroundColor: barData.map((d, index) => {
+              const color = SQUARE_COLORS[index % SQUARE_COLORS.length];
+              return darkenHexColor(color, 30);
+            }),
             borderRadius: 5,
             formatter: (value, context) => {
               return value.toFixed(2);
@@ -213,6 +219,24 @@ function createChart(chartData, template, templateParent) {
       },
     });
   }
+}
+
+// Handle special cases: render a bulleted list instead of a chart
+function handleSpecialCases(pieData, container) {
+  container.innerHTML = ""; // Clear the container
+
+  const ul = document.createElement("ul"); // Create an unordered list element
+
+  pieData.forEach((item) => {
+    const li = document.createElement("li"); // Create a list item for each data label
+    li.textContent = item.label; // Set the label text
+    ul.appendChild(li); // Add the list item to the unordered list
+  });
+
+  container.appendChild(ul); // Append the list to the container
+  const parentElement = container.parentElement;
+  container.remove();
+  parentElement.appendChild(container);
 }
 
 // Helper function to convert hex color to HSL
