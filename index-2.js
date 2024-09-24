@@ -1,39 +1,37 @@
-// const LIGHT_BLUE = "#019cff";
-// const DARK_BLUE = "#253c61";
-// const DARK_BLUE_RGBA = "rgba(37, 60, 97, 0.8)";
+const SQUARE_COLORS = ["#253C61", "#724984", "#c64b80", "#fd6756", "#ffa600"];
 
-// const COLORS = [
-//   "#253C61", // Dark blue
-//   "#252961",
-//   "#254F61",
-//   "#256160",
-//   "#256160",
-//   "#455061",
-// ];
+// dark colors
+// ["#253C61", "#724984", "#c64b80", "#fd6756", "#ffa600"];
 
-const SQUARE_COLORS_DARK = [
-  "#253C61", // Dark blue
-  "#276125",
-  "#614D25",
-  "#612547",
-  "#492E8B",
-];
-
-const SQUARE_COLORS = ["#097FE0", "#E08C09", "#09E091", "#E009C6", "#A1DB00"];
+// light colors
+// ["#60a8ff", "#cd92f7", "#ff78be", "#ff7d6c", "#ffa600"];
 
 async function fetchData() {
   const URL =
-    "https://fl-leads-example-transformed-json-data.s3.amazonaws.com/data.json";
+    "https://fl-leads-dev-transformed-json-data.s3.amazonaws.com/data.json";
 
   try {
     const response = await fetch(URL);
     const data = await response.json();
     console.log({ data });
 
-    data.forEach((chartData) => {
-      const template = document.querySelector("[chart-element='box']");
-      const templateParent = template.parentElement;
-      createChart(chartData, template, templateParent);
+    const template = document.querySelector("[chart-element='box']");
+    const templateParent = template.parentElement;
+
+    const chartContainers = data.map((chartData) => {
+      const { order } = chartData;
+      const chartContainer = createChart(chartData, template, templateParent);
+
+      return { order, chartContainer };
+    });
+
+    chartContainers.sort((a, b) => a.order - b.order);
+
+    console.log({ chartContainers });
+
+    chartContainers.forEach(({ chartContainer }) => {
+      templateParent.appendChild(chartContainer);
+      chartContainer.classList.remove("hide");
     });
   } catch (error) {
     console.error("Error fetching data", error);
@@ -50,8 +48,8 @@ function createChart(chartData, template, templateParent) {
     "[chart-element='canvas-container']"
   );
   canvasContainer.appendChild(canvas);
-  templateParent.appendChild(chartContainer);
-  chartContainer.classList.remove("hide");
+  // templateParent.appendChild(chartContainer);
+  // chartContainer.classList.remove("hide");
 
   const ctx = canvas.getContext("2d");
 
@@ -68,70 +66,64 @@ function createChart(chartData, template, templateParent) {
       label: item.label,
       value: item.value,
     }));
-
-    // Special case: if title is "Training, Resources & Needs", show a list instead of a pie chart
-    if (chartData.title === "Training, Resources & Needs") {
-      handleSpecialCases(pieData, canvasContainer); // Pass the container
-    } else {
-      // Render pie chart
-      new Chart(ctx, {
-        type: "pie",
-        data: {
-          labels: pieData.map((d) => d.label),
-          datasets: [
-            {
-              data: pieData.map((d) => d.value),
-              backgroundColor: pieData.map((d, index) => {
-                return SQUARE_COLORS[index % SQUARE_COLORS.length];
-              }),
+    // Render pie chart
+    new Chart(ctx, {
+      type: "pie",
+      data: {
+        labels: pieData.map((d) => d.label),
+        datasets: [
+          {
+            data: pieData.map((d) => d.value),
+            backgroundColor: pieData.map((d, index) => {
+              return SQUARE_COLORS[index % SQUARE_COLORS.length];
+            }),
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        aspectRatio: 1,
+        plugins: {
+          legend: {
+            display: false,
+          },
+          tooltip: {
+            enabled: true,
+          },
+          title: {
+            display: false,
+            text: chartData.title,
+          },
+          datalabels: {
+            color: "white",
+            font: {
+              weight: "normal",
+              size: 14,
             },
-          ],
-        },
-        options: {
-          responsive: true,
-          aspectRatio: 1,
-          plugins: {
-            legend: {
-              display: false,
+            backgroundColor: pieData.map((d, index) => {
+              const color = SQUARE_COLORS[index % SQUARE_COLORS.length];
+              return darkenHexColor(color, 30);
+            }),
+            padding: 8,
+            borderRadius: 5,
+            formatter: (value, context) => {
+              const label = context.chart.data.labels[context.dataIndex];
+              const lines = wrapText(ctx, label, 100);
+              return lines.join("\n") + `\n${value}%`;
             },
-            tooltip: {
-              enabled: true,
-            },
-            title: {
-              display: false,
-              text: chartData.title,
-            },
-            datalabels: {
-              color: "white",
-              font: {
-                weight: "normal",
-                size: 14,
-              },
-              backgroundColor: pieData.map((d, index) => {
-                const color = SQUARE_COLORS[index % SQUARE_COLORS.length];
-                return darkenHexColor(color, 30);
-              }),
-              padding: 8,
-              borderRadius: 5,
-              formatter: (value, context) => {
-                const label = context.chart.data.labels[context.dataIndex];
-                const lines = wrapText(ctx, label, 100);
-                return lines.join("\n") + `\n${value}%`;
-              },
-              display: "auto",
-              anchor: "center",
-              align: "start",
-              offset: function (context) {
-                const chartArea = context.chart.chartArea;
-                const radius = (chartArea.right - chartArea.left) / 2; // Calculate radius based on chart area
-                return radius * -0.45; // Offset inward by 25% of the radius
-              },
+            display: "auto",
+            anchor: "center",
+            align: "start",
+            offset: function (context) {
+              const chartArea = context.chart.chartArea;
+              const radius = (chartArea.right - chartArea.left) / 2; // Calculate radius based on chart area
+              return radius * -0.45; // Offset inward by 25% of the radius
             },
           },
         },
-        plugins: [ChartDataLabels],
-      });
-    }
+      },
+      plugins: [ChartDataLabels],
+    });
   } else if (chartData.type === "BAR") {
     const barData = chartData.bars.map((bar) => ({
       label: bar.label,
@@ -218,16 +210,27 @@ function createChart(chartData, template, templateParent) {
         },
       },
     });
+  } else if (chartData.type === "HORIZONTAL") {
+    console.log("horizontal chart");
+    handleSpecialCases(chartData, canvasContainer); // Pass the container
   }
+
+  return chartContainer;
 }
 
 // Handle special cases: render a bulleted list instead of a chart
-function handleSpecialCases(pieData, container) {
+function handleSpecialCases(chartData, container) {
+  const data = chartData.data.map((item) => ({
+    label: item.label,
+    value: item.value,
+  }));
+  console.log("Special case: render a bulleted list");
+  console.log({ data });
   container.innerHTML = ""; // Clear the container
 
   const ul = document.createElement("ul"); // Create an unordered list element
 
-  pieData.forEach((item) => {
+  data.forEach((item) => {
     const li = document.createElement("li"); // Create a list item for each data label
     li.textContent = item.label; // Set the label text
     ul.appendChild(li); // Add the list item to the unordered list
