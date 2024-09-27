@@ -13,7 +13,6 @@ async function fetchData() {
   try {
     const response = await fetch(URL);
     const data = await response.json();
-    console.log({ data });
 
     const template = document.querySelector("[chart-element='box']");
     const templateParent = template.parentElement;
@@ -26,8 +25,6 @@ async function fetchData() {
     });
 
     chartContainers.sort((a, b) => a.order - b.order);
-
-    console.log({ chartContainers });
 
     chartContainers.forEach(({ chartContainer }) => {
       templateParent.appendChild(chartContainer);
@@ -211,36 +208,116 @@ function createChart(chartData, template, templateParent) {
       },
     });
   } else if (chartData.type === "HORIZONTAL") {
-    console.log("horizontal chart");
-    handleSpecialCases(chartData, canvasContainer); // Pass the container
+    const barData = chartData.data.map((item) => ({
+      label: item.label,
+      value: item.value,
+    }));
+
+    // Set canvas height dynamically
+    canvas.height = barData.length * 60; // Adjust as needed
+
+    new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: barData.map((d) => d.label),
+        datasets: [
+          {
+            data: barData.map((d) => d.value),
+            backgroundColor: barData.map((d, index) => {
+              return SQUARE_COLORS[index % SQUARE_COLORS.length];
+            }),
+            borderColor: barData.map((d, index) => {
+              return SQUARE_COLORS[index % SQUARE_COLORS.length];
+            }),
+            borderWidth: 1,
+          },
+        ],
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: {
+            display: false,
+          },
+          legend: {
+            display: false,
+          },
+          datalabels: {
+            color: "white",
+            font: {
+              weight: "normal",
+              size: 12,
+            },
+            backgroundColor: barData.map((d, index) => {
+              const color = SQUARE_COLORS[index % SQUARE_COLORS.length];
+              return darkenHexColor(color, 30);
+            }),
+            borderRadius: 5,
+            formatter: (value, context) => {
+              const label = context.chart.data.labels[context.dataIndex];
+              // wrap
+              const lines = wrapText(ctx, label, 300);
+              return lines.join("\n") + `: ${value.toFixed(2)}`;
+            },
+            display: "auto",
+            anchor: "start",
+            align: "end",
+            offset: 8,
+          },
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1,
+              font: {
+                size: 12,
+              },
+            },
+          },
+          y: {
+            ticks: {
+              autoSkip: false,
+              font: {
+                size: 12,
+              },
+              display: false,
+            },
+          },
+        },
+      },
+      plugins: [ChartDataLabels],
+    });
   }
 
   return chartContainer;
 }
 
 // Handle special cases: render a bulleted list instead of a chart
-function handleSpecialCases(chartData, container) {
-  const data = chartData.data.map((item) => ({
-    label: item.label,
-    value: item.value,
-  }));
-  console.log("Special case: render a bulleted list");
-  console.log({ data });
-  container.innerHTML = ""; // Clear the container
+// function handleSpecialCases(chartData, container) {
+//   const data = chartData.data.map((item) => ({
+//     label: item.label,
+//     value: item.value,
+//   }));
+//   console.log("Special case: render a bulleted list");
+//   console.log({ data });
+//   container.innerHTML = ""; // Clear the container
 
-  const ul = document.createElement("ul"); // Create an unordered list element
+//   const ul = document.createElement("ul"); // Create an unordered list element
 
-  data.forEach((item) => {
-    const li = document.createElement("li"); // Create a list item for each data label
-    li.textContent = item.label; // Set the label text
-    ul.appendChild(li); // Add the list item to the unordered list
-  });
+//   data.forEach((item) => {
+//     const li = document.createElement("li"); // Create a list item for each data label
+//     li.textContent = item.label; // Set the label text
+//     ul.appendChild(li); // Add the list item to the unordered list
+//   });
 
-  container.appendChild(ul); // Append the list to the container
-  const parentElement = container.parentElement;
-  container.remove();
-  parentElement.appendChild(container);
-}
+//   container.appendChild(ul); // Append the list to the container
+//   const parentElement = container.parentElement;
+//   container.remove();
+//   parentElement.appendChild(container);
+// }
 
 // Helper function to convert hex color to HSL
 function hexToHSL(hex) {
