@@ -1,10 +1,8 @@
+// The following scripts are required.
+// <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+// <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+
 const SQUARE_COLORS = ["#253C61", "#724984", "#c64b80", "#fd6756", "#ffa600"];
-
-// dark colors
-// ["#253C61", "#724984", "#c64b80", "#fd6756", "#ffa600"];
-
-// light colors
-// ["#60a8ff", "#cd92f7", "#ff78be", "#ff7d6c", "#ffa600"];
 
 async function fetchData() {
   const URL =
