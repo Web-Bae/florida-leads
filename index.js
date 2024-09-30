@@ -6,7 +6,7 @@ const SQUARE_COLORS = ["#253C61", "#724984", "#c64b80", "#fd6756", "#ffa600"];
 
 async function fetchData() {
   const URL =
-    "https://fl-leads-dev-transformed-json-data.s3.amazonaws.com/data.json";
+    "https://fl-leads-prod-transformed-json-data.s3.amazonaws.com/data.json";
 
   try {
     const response = await fetch(URL);
@@ -446,105 +446,3 @@ function wrapText(context, text, maxWidth) {
   lines.push(line.trim());
   return lines;
 }
-/*
-const externalLabelsPlugin = {
-  id: "externalLabelsPlugin",
-  afterDraw: (chart) => {
-    const {
-      ctx,
-      chartArea: { top, width, height },
-      canvas: { height: canvasHeight },
-    } = chart;
-    const linesOutsideChart = ctx.linesOutsideChart || [];
-    const containerWidth =
-      document.querySelector("#chartsContainer").offsetWidth;
-
-    const labelAreaWidth = Math.min(containerWidth * 0.3, 250); // Reduced max width to 150px
-    const labelStartX = containerWidth - labelAreaWidth - 10; // Start 10px from the right edge of the canvas
-    let currentY = top; // Start from the top of the chart area
-
-    const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
-    const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
-    const radius = Math.min(width, height) / 2;
-
-    const wrapText = (ctx, text, maxWidth) => {
-      const words = text.split(" ");
-      const lines = [];
-      let currentLine = words[0];
-
-      for (let i = 1; i < words.length; i++) {
-        const word = words[i];
-        const width = ctx.measureText(currentLine + " " + word).width;
-        if (width < maxWidth) {
-          currentLine += " " + word;
-        } else {
-          lines.push(currentLine);
-          currentLine = word;
-        }
-      }
-      lines.push(currentLine);
-      return lines;
-    };
-
-    linesOutsideChart.forEach((item, index) => {
-      const labelX = labelStartX; // Start from the calculated start position
-      const labelY = currentY;
-
-      // Calculate label lines with wrapped text
-      const titleLines = wrapText(ctx, item.title, labelAreaWidth - 10);
-      const labelLines = [
-        ...titleLines,
-        `Mean: ${item.mean.toFixed(2)}`,
-        `Total: ${item.total_sum}`,
-        `Count: ${item.total_count}`,
-      ];
-      const labelHeight = labelLines.length * 15 + 10; // 15px line height + 10px padding
-
-      // Draw white background for label
-      ctx.fillStyle = "white";
-      ctx.fillRect(labelX, labelY, labelAreaWidth, labelHeight);
-
-      // Draw border for label box
-      ctx.strokeStyle = "black";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(labelX, labelY, labelAreaWidth, labelHeight);
-
-      // Draw label
-      ctx.font = "12px Arial";
-      ctx.fillStyle = "black";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "top";
-
-      labelLines.forEach((line, i) => {
-        ctx.fillText(line, labelX + 5, labelY + 5 + i * 15);
-      });
-
-      // Calculate the angle to the center of the label box
-      const labelCenterX = labelX;
-      const labelCenterY = labelY + labelHeight / 2;
-      const angleToLabel = Math.atan2(
-        labelCenterY - centerY,
-        labelCenterX - centerX
-      );
-
-      // Find the point on the pie chart closest to the label
-      const pieX = centerX + Math.cos(angleToLabel) * radius;
-      const pieY = centerY + Math.sin(angleToLabel) * radius;
-
-      // Draw line from chart to label
-      ctx.beginPath();
-      ctx.moveTo(pieX, pieY);
-      ctx.lineTo(labelX, labelCenterY);
-      ctx.stroke();
-
-      // Update currentY for the next label
-      currentY += labelHeight + 5; // 5px gap between labels
-
-      // If the next label would go off the bottom of the canvas, stop drawing labels
-      if (currentY + labelHeight > canvasHeight) {
-        return; // This will break the forEach loop
-      }
-    });
-  },
-};
-*/
